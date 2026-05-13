@@ -1,0 +1,6 @@
+{
+  "name": "El Campo de Dios - Gestión de Mesas",
+  "description": "Sistema de gestión de disponibilidad de lugares en el salón de fiestas El Campo de Dios, con visión de mesas en tiempo real.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
