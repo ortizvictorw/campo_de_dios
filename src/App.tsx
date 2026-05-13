@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { Users, Search, RefreshCw, ZoomIn, ZoomOut, Maximize, LayoutGrid, List, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -63,25 +63,23 @@ const SeatComponent = React.memo(({
   const y = Math.sin(angle) * radius;
 
   return (
-    <motion.button
-      whileHover={{ scale: 1.2 }}
-      whileTap={{ scale: 0.9 }}
+    <button
       onClick={(e) => {
         e.stopPropagation();
         onClick();
       }}
-      className={`absolute w-3.5 h-3.5 rounded-full border border-black/10 cursor-pointer transition-all duration-200 flex items-center justify-center text-[6px] font-bold z-20 ${
+      className={`absolute w-3.5 h-3.5 rounded-full border border-black/10 cursor-pointer flex items-center justify-center text-[6px] font-bold z-20 transition-all active:scale-90 will-change-transform ${
         occupied 
           ? 'bg-rose-500 border-rose-600 text-white shadow-[0_1px_2px_rgba(0,0,0,0.1)]' 
           : 'bg-emerald-500 border-emerald-600 text-white shadow-[0_1px_2px_rgba(0,0,0,0.1)]'
-      } ${highlight ? 'ring-2 ring-yellow-400 ring-offset-1 scale-125 z-30' : ''}`}
+      } ${highlight ? 'ring-2 ring-yellow-400 ring-offset-1 scale-125 z-30' : 'hover:scale-125'}`}
       style={{
-        left: `calc(50% + ${x}px - 7px)`,
-        top: `calc(50% + ${y}px - 7px)`,
+        left: `calc(50% + ${x}px - 7.5px)`, // Adjusted centering
+        top: `calc(50% + ${y}px - 7.5px)`,
       }}
     >
       {displayNumber}
-    </motion.button>
+    </button>
   );
 });
 
@@ -225,6 +223,17 @@ export default function App() {
   const [showStats, setShowStats] = useState(false);
   const [selectedListItems, setSelectedListItems] = useState<Set<string>>(new Set());
   const [bulkFamilyName, setBulkFamilyName] = useState('');
+  const bulkInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-focus input when selection pops up
+  useEffect(() => {
+    if (selectedListItems.size > 0) {
+      const timer = setTimeout(() => {
+        bulkInputRef.current?.focus();
+      }, 400); 
+      return () => clearTimeout(timer);
+    }
+  }, [selectedListItems.size]);
 
   const handleBulkSave = async () => {
     if (selectedListItems.size === 0 || !bulkFamilyName.trim()) return;
@@ -589,7 +598,7 @@ export default function App() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 left-0 right-0 sm:bottom-12 sm:left-1/2 sm:-translate-x-1/2 bg-stone-950 text-white p-5 sm:px-6 sm:py-4 rounded-t-[2rem] sm:rounded-2xl shadow-[0_-20px_50px_rgba(0,0,0,0.5)] flex flex-col sm:flex-row items-center gap-4 sm:gap-6 z-[120] border-t sm:border border-stone-800/50 w-full sm:w-max sm:max-w-xl backdrop-blur-md"
+              className="fixed bottom-0 left-0 right-0 sm:bottom-12 sm:left-1/2 sm:-translate-x-1/2 bg-stone-950 text-white p-5 sm:px-6 sm:py-4 rounded-t-[2rem] sm:rounded-2xl shadow-[0_-20px_50px_rgba(0,0,0,0.5)] flex flex-col sm:flex-row items-center gap-4 sm:gap-6 z-[120] border-t sm:border border-stone-800/50 w-full sm:w-max sm:max-w-5xl backdrop-blur-md"
             >
               <div className="flex items-center justify-between w-full sm:w-auto sm:flex-col sm:items-start sm:gap-1">
                 <div className="flex flex-col">
@@ -611,21 +620,23 @@ export default function App() {
 
               <div className="hidden sm:block h-10 w-[1px] bg-stone-800/50"></div>
 
-              <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-                <div className="w-full sm:w-auto relative group">
+              <div className="flex flex-col sm:flex-row flex-1 items-center gap-3 w-full sm:w-auto">
+                <div className="w-full sm:flex-1 relative group">
                   <input 
                     type="text" 
                     placeholder="Apellido de la familia..."
                     value={bulkFamilyName}
                     onChange={(e) => setBulkFamilyName(e.target.value)}
-                    className="bg-stone-900 border border-stone-800 rounded-xl px-5 py-4 sm:py-2.5 text-base sm:text-sm focus:ring-2 focus:ring-emerald-500 outline-none w-full sm:w-64 placeholder:text-stone-700 text-white transition-all shadow-inner"
+                    className="bg-stone-900 border border-stone-800 rounded-xl px-5 py-4 sm:py-2.5 text-base sm:text-sm focus:ring-2 focus:ring-emerald-500 outline-none w-full placeholder:text-stone-700 text-white transition-all shadow-inner"
                     style={{ fontSize: '16px' }}
+                    autoFocus
+                    ref={bulkInputRef}
                   />
                 </div>
                 <button 
                   onClick={handleBulkSave}
                   disabled={!bulkFamilyName.trim() || loading}
-                  className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:bg-stone-900 disabled:text-stone-800 text-white px-8 py-4.5 sm:py-2.5 rounded-xl text-sm sm:text-xs font-black uppercase tracking-[0.15em] transition-all shadow-xl shadow-emerald-950/40 active:scale-[0.98] border border-emerald-500/20"
+                  className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:bg-stone-900 disabled:text-stone-800 text-white px-8 py-4.5 sm:py-2.5 rounded-xl text-sm sm:text-xs font-black uppercase tracking-[0.15em] transition-all shadow-xl shadow-emerald-950/40 active:scale-[0.98] border border-emerald-500/20 whitespace-nowrap"
                 >
                   {loading ? 'Asignando...' : 'Confirmar Asignación'}
                 </button>
