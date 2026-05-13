@@ -51,7 +51,7 @@ interface SeatProps {
   highlight?: boolean;
 }
 
-const SeatComponent = ({ 
+const SeatComponent = React.memo(({ 
   displayNumber,
   occupied, 
   onClick, 
@@ -64,17 +64,17 @@ const SeatComponent = ({
 
   return (
     <motion.button
-      whileHover={{ scale: 1.4 }}
-      whileTap={{ scale: 0.8 }}
+      whileHover={{ scale: 1.2 }}
+      whileTap={{ scale: 0.9 }}
       onClick={(e) => {
         e.stopPropagation();
         onClick();
       }}
-      className={`absolute w-3.5 h-3.5 rounded-full border border-black/10 cursor-pointer transition-all duration-300 flex items-center justify-center text-[6px] font-bold ${
+      className={`absolute w-3.5 h-3.5 rounded-full border border-black/10 cursor-pointer transition-all duration-200 flex items-center justify-center text-[6px] font-bold z-20 ${
         occupied 
           ? 'bg-rose-500 border-rose-600 text-white shadow-[0_1px_2px_rgba(0,0,0,0.1)]' 
           : 'bg-emerald-500 border-emerald-600 text-white shadow-[0_1px_2px_rgba(0,0,0,0.1)]'
-      } ${highlight ? 'ring-2 ring-yellow-400 ring-offset-1 scale-125' : ''}`}
+      } ${highlight ? 'ring-2 ring-yellow-400 ring-offset-1 scale-125 z-30' : ''}`}
       style={{
         left: `calc(50% + ${x}px - 7px)`,
         top: `calc(50% + ${y}px - 7px)`,
@@ -83,21 +83,11 @@ const SeatComponent = ({
       {displayNumber}
     </motion.button>
   );
-};
+});
 
-interface TableProps {
-  key?: React.Key;
-  tableId: number;
-  seats: boolean[];
-  names: (string | undefined)[];
-  onToggle: (seatId: number) => void;
-  highlightCount?: number;
-  highlightName?: string;
-  onBulkAssign?: (tableId: number) => void;
-  selectedSeats?: Set<string>;
-}
+SeatComponent.displayName = 'SeatComponent';
 
-const TableComponent = ({ 
+const TableComponent = React.memo(({ 
   tableId, 
   seats, 
   names,
@@ -126,7 +116,7 @@ const TableComponent = ({
   return (
     <div className="relative flex flex-col items-center">
       <div 
-        className={`relative w-14 h-14 flex items-center justify-center rounded-full bg-white border-2 shadow-lg transition-all duration-500 z-10 ${
+        className={`relative w-14 h-14 flex items-center justify-center rounded-full bg-white border-2 shadow-lg transition-all duration-300 z-10 ${
           canFit || hasMatchedName 
             ? matchType === 'perfect' 
               ? 'border-blue-500 bg-blue-50 scale-125 ring-4 ring-blue-100 shadow-blue-200' 
@@ -142,30 +132,31 @@ const TableComponent = ({
           M-{(tableId + 1).toString().padStart(2, '0')}
         </span>
         
-        <div className="absolute w-20 h-20">
-          {Array.from({ length: 10 }).map((_, i) => {
-            const isMatch = highlightName && names[i]?.toLowerCase().includes(highlightName.toLowerCase());
-            const globalId = tableId * 10 + i + 1;
-            
-            let seatHighlight = false;
-            const isSelected = selectedSeats?.has(`${tableId}-${i}`);
+        <div className="absolute w-20 h-20 pointer-events-none">
+          <div className="relative w-full h-full pointer-events-auto">
+            {Array.from({ length: 10 }).map((_, i) => {
+              const isMatch = highlightName && names[i]?.toLowerCase().includes(highlightName.toLowerCase());
+              const globalId = tableId * 10 + i + 1;
+              const isSelected = selectedSeats?.has(`${tableId}-${i}`);
+              
+              let seatHighlight = false;
+              if (isMatch) seatHighlight = true;
+              else if (canFit && !seats[i]) {
+                seatHighlight = true;
+              }
 
-            if (isMatch) seatHighlight = true;
-            else if (canFit && !seats[i]) {
-              seatHighlight = true;
-            }
-
-            return (
-              <SeatComponent
-                key={i}
-                displayNumber={globalId}
-                angle={(i * 36 * Math.PI) / 180}
-                occupied={seats[i] || false}
-                onClick={() => onToggle(i)}
-                highlight={seatHighlight || isSelected}
-              />
-            );
-          })}
+              return (
+                <SeatComponent
+                  key={i}
+                  displayNumber={globalId}
+                  angle={(i * 36 * Math.PI) / 180}
+                  occupied={seats[i] || false}
+                  onClick={() => onToggle(i)}
+                  highlight={seatHighlight || isSelected}
+                />
+              );
+            })}
+          </div>
         </div>
       </div>
       {(canFit || hasMatchedName) && (
@@ -194,7 +185,7 @@ const TableComponent = ({
             e.stopPropagation();
             onBulkAssign(tableId);
           }}
-          className={`mt-2 text-white text-[9px] font-black uppercase px-3 py-1.5 rounded-full shadow-lg z-20 transition-all whitespace-nowrap border border-white ${
+          className={`mt-2 text-white text-[9px] font-black uppercase px-3 py-1.5 rounded-full shadow-lg z-20 transition-all whitespace-nowrap border border-white active:scale-95 ${
             matchType === 'perfect' 
               ? 'bg-blue-600 shadow-blue-200 hover:bg-blue-700' 
               : 'bg-emerald-600 shadow-emerald-200 hover:bg-emerald-700'
@@ -205,7 +196,9 @@ const TableComponent = ({
       )}
     </div>
   );
-};
+});
+
+TableComponent.displayName = 'TableComponent';
 
 export default function App() {
   const [seatsData, setSeatsData] = useState<Seat[]>([]);
@@ -471,9 +464,11 @@ export default function App() {
             >
               <TransformWrapper
                 initialScale={window.innerWidth < 768 ? 0.35 : 0.6}
-                minScale={0.2}
-                maxScale={3}
+                minScale={0.1}
+                maxScale={4}
                 centerOnInit
+                limitToBounds={false}
+                panning={{ activationKeys: [], lockAxisX: false, lockAxisY: false }}
               >
                 {({ zoomIn, zoomOut, resetTransform }) => (
                   <>
@@ -578,56 +573,56 @@ export default function App() {
         <AnimatePresence>
           {selectedListItems.size > 0 && (
             <motion.div 
-              initial={{ y: 100, x: '-50%', opacity: 0 }}
-              animate={{ y: 0, x: '-50%', opacity: 1 }}
-              exit={{ y: 100, x: '-50%', opacity: 0 }}
-              className="fixed bottom-4 sm:bottom-12 sm:left-1/2 left-1/2 -translate-x-1/2 bg-stone-950 text-white p-3 sm:px-6 sm:py-4 rounded-xl sm:rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.6)] flex flex-col sm:flex-row items-center gap-3 sm:gap-6 z-[120] border border-stone-800 w-[95%] sm:w-max max-w-lg"
+              initial={{ y: "100%", x: "-50%", opacity: 0 }}
+              animate={{ y: 0, x: "-50%", opacity: 1 }}
+              exit={{ y: "100%", x: "-50%", opacity: 0 }}
+              className="fixed bottom-0 sm:bottom-12 left-1/2 -translate-x-1/2 bg-stone-950 text-white p-3.5 sm:px-6 sm:py-4 rounded-t-2xl sm:rounded-2xl shadow-[0_-15px_40px_rgba(0,0,0,0.8)] flex flex-col sm:flex-row items-center gap-3 sm:gap-6 z-[120] border-t sm:border border-stone-800/50 w-full sm:w-max sm:max-w-xl backdrop-blur-xl"
             >
-              <div className="flex sm:flex-col items-center sm:items-start justify-between sm:justify-start gap-2 sm:gap-1 w-full sm:w-auto px-1 sm:px-0">
-                <div className="flex flex-col">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-stone-500 leading-none">Seleccionados</span>
-                  <div className="flex items-baseline gap-1 mt-0.5">
-                    <span className="text-base sm:text-xl font-black leading-none text-emerald-400">{selectedListItems.size}</span>
-                    <span className="text-[9px] text-stone-600 font-bold uppercase tracking-tighter">Sillas</span>
+              <div className="flex items-center justify-between w-full sm:w-auto sm:flex-col sm:items-start sm:gap-1">
+                <div className="flex items-center sm:block gap-3">
+                  <div className="flex flex-col">
+                    <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-stone-500 leading-none">Seleccionados</span>
+                    <div className="flex items-baseline gap-1.5 mt-0.5">
+                      <span className="text-xl sm:text-3xl font-black leading-none text-emerald-400 tabular-nums">{selectedListItems.size}</span>
+                      <span className="text-[10px] text-stone-600 font-bold uppercase tracking-tight">Sillas</span>
+                    </div>
                   </div>
+                  
+                  <button 
+                    onClick={() => setSelectedListItems(new Set())}
+                    className="p-1.5 sm:hidden bg-stone-900 border border-stone-800 rounded-lg text-stone-500 active:scale-90 transition-transform"
+                  >
+                    <RefreshCw size={14} />
+                  </button>
                 </div>
-                
+
                 <button 
                   onClick={() => setSelectedListItems(new Set())}
-                  className="p-2 sm:hidden bg-stone-900 border border-stone-800 rounded-lg text-stone-500 flex items-center gap-1"
+                  className="hidden sm:flex px-4 py-2 bg-stone-900 border border-stone-800 rounded-xl text-rose-500 items-center gap-2 active:scale-95 transition-transform"
                 >
-                  <RefreshCw size={12} />
-                  <span className="text-[9px] font-black uppercase">Limpiar</span>
+                  <RefreshCw size={14} />
+                  <span className="text-xs font-black uppercase tracking-wider">Limpiar</span>
                 </button>
               </div>
 
-              <div className="hidden sm:block h-10 w-[1px] bg-stone-800"></div>
+              <div className="hidden sm:block h-10 w-[1px] bg-stone-800/50"></div>
 
-              <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 w-full sm:w-auto">
+              <div className="flex flex-row items-center gap-2 w-full sm:w-auto">
                 <input 
                   type="text" 
-                  placeholder="Nombre de la familia..."
+                  placeholder="Familia..."
                   value={bulkFamilyName}
                   onChange={(e) => setBulkFamilyName(e.target.value)}
-                  className="bg-stone-900/50 border border-stone-800 rounded-lg px-4 py-3 sm:py-2 text-sm focus:ring-1 focus:ring-emerald-500 outline-none w-full sm:w-48 md:w-64 placeholder:text-stone-700 text-white"
-                  style={{ fontSize: '16px' }} // Prevents iOS auto-zoom
+                  className="flex-1 sm:flex-none bg-stone-900/80 border border-stone-800 rounded-xl px-4 py-3 sm:py-2.5 text-sm sm:text-base focus:ring-2 focus:ring-emerald-500 outline-none sm:w-64 placeholder:text-stone-700 text-white transition-all shadow-inner"
+                  style={{ fontSize: '16px' }}
                 />
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <button 
-                    onClick={handleBulkSave}
-                    disabled={!bulkFamilyName.trim() || loading}
-                    className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-500 disabled:bg-stone-900 disabled:text-stone-700 text-white px-6 py-3 sm:py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-950/20 active:scale-95"
-                  >
-                    {loading ? 'Sincronizando...' : 'Asignar Familia'}
-                  </button>
-                  <button 
-                    onClick={() => setSelectedListItems(new Set())}
-                    className="hidden sm:flex p-2 bg-stone-900 rounded-lg text-stone-500 hover:text-white transition-colors border border-stone-800"
-                    title="Limpiar Selección"
-                  >
-                    <RefreshCw size={16} />
-                  </button>
-                </div>
+                <button 
+                  onClick={handleBulkSave}
+                  disabled={!bulkFamilyName.trim() || loading}
+                  className="shrink-0 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:bg-stone-900 disabled:text-stone-800 text-white px-5 sm:px-8 py-3 sm:py-2.5 rounded-xl sm:rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-[0.1em] transition-all shadow-[0_5px_15px_rgba(5,150,105,0.2)] active:scale-95 border border-emerald-500/20"
+                >
+                  {loading ? '...' : 'Asignar'}
+                </button>
               </div>
             </motion.div>
           )}
