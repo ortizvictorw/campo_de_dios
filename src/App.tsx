@@ -87,6 +87,18 @@ const SeatComponent = React.memo(({
 
 SeatComponent.displayName = 'SeatComponent';
 
+interface TableProps {
+  key?: React.Key;
+  tableId: number;
+  seats: boolean[];
+  names: (string | undefined)[];
+  onToggle: (seatId: number) => void;
+  highlightCount?: number;
+  highlightName?: string;
+  onBulkAssign?: (tableId: number) => void;
+  selectedSeats?: Set<string>;
+}
+
 const TableComponent = React.memo(({ 
   tableId, 
   seats, 
@@ -573,55 +585,56 @@ export default function App() {
         <AnimatePresence>
           {selectedListItems.size > 0 && (
             <motion.div 
-              initial={{ y: "100%", x: "-50%", opacity: 0 }}
-              animate={{ y: 0, x: "-50%", opacity: 1 }}
-              exit={{ y: "100%", x: "-50%", opacity: 0 }}
-              className="fixed bottom-0 sm:bottom-12 left-1/2 -translate-x-1/2 bg-stone-950 text-white p-3.5 sm:px-6 sm:py-4 rounded-t-2xl sm:rounded-2xl shadow-[0_-15px_40px_rgba(0,0,0,0.8)] flex flex-col sm:flex-row items-center gap-3 sm:gap-6 z-[120] border-t sm:border border-stone-800/50 w-full sm:w-max sm:max-w-xl backdrop-blur-xl"
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed bottom-0 left-0 right-0 sm:bottom-12 sm:left-1/2 sm:-translate-x-1/2 bg-stone-950 text-white p-5 sm:px-6 sm:py-4 rounded-t-[2rem] sm:rounded-2xl shadow-[0_-20px_50px_rgba(0,0,0,0.5)] flex flex-col sm:flex-row items-center gap-4 sm:gap-6 z-[120] border-t sm:border border-stone-800/50 w-full sm:w-max sm:max-w-xl backdrop-blur-md"
             >
               <div className="flex items-center justify-between w-full sm:w-auto sm:flex-col sm:items-start sm:gap-1">
-                <div className="flex items-center sm:block gap-3">
-                  <div className="flex flex-col">
-                    <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-stone-500 leading-none">Seleccionados</span>
-                    <div className="flex items-baseline gap-1.5 mt-0.5">
-                      <span className="text-xl sm:text-3xl font-black leading-none text-emerald-400 tabular-nums">{selectedListItems.size}</span>
-                      <span className="text-[10px] text-stone-600 font-bold uppercase tracking-tight">Sillas</span>
-                    </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-stone-500 leading-none">Seleccionados</span>
+                  <div className="flex items-baseline gap-2 mt-1">
+                    <span className="text-3xl sm:text-2xl font-black leading-none text-emerald-400 tabular-nums">{selectedListItems.size}</span>
+                    <span className="text-[10px] text-stone-600 font-bold uppercase tracking-tight">Sillas</span>
                   </div>
-                  
-                  <button 
-                    onClick={() => setSelectedListItems(new Set())}
-                    className="p-1.5 sm:hidden bg-stone-900 border border-stone-800 rounded-lg text-stone-500 active:scale-90 transition-transform"
-                  >
-                    <RefreshCw size={14} />
-                  </button>
                 </div>
+                
+                <button 
+                  onClick={() => setSelectedListItems(new Set())}
+                  className="px-4 py-2 sm:hidden bg-stone-900 border border-stone-800 rounded-xl text-rose-500 flex items-center gap-2 active:scale-95 transition-all text-xs font-black uppercase tracking-widest"
+                >
+                  <RefreshCw size={14} className="opacity-70" />
+                  Limpiar
+                </button>
+              </div>
 
+              <div className="hidden sm:block h-10 w-[1px] bg-stone-800/50"></div>
+
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                <div className="w-full sm:w-auto relative group">
+                  <input 
+                    type="text" 
+                    placeholder="Apellido de la familia..."
+                    value={bulkFamilyName}
+                    onChange={(e) => setBulkFamilyName(e.target.value)}
+                    className="bg-stone-900 border border-stone-800 rounded-xl px-5 py-4 sm:py-2.5 text-base sm:text-sm focus:ring-2 focus:ring-emerald-500 outline-none w-full sm:w-64 placeholder:text-stone-700 text-white transition-all shadow-inner"
+                    style={{ fontSize: '16px' }}
+                  />
+                </div>
+                <button 
+                  onClick={handleBulkSave}
+                  disabled={!bulkFamilyName.trim() || loading}
+                  className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:bg-stone-900 disabled:text-stone-800 text-white px-8 py-4.5 sm:py-2.5 rounded-xl text-sm sm:text-xs font-black uppercase tracking-[0.15em] transition-all shadow-xl shadow-emerald-950/40 active:scale-[0.98] border border-emerald-500/20"
+                >
+                  {loading ? 'Asignando...' : 'Confirmar Asignación'}
+                </button>
                 <button 
                   onClick={() => setSelectedListItems(new Set())}
                   className="hidden sm:flex px-4 py-2 bg-stone-900 border border-stone-800 rounded-xl text-rose-500 items-center gap-2 active:scale-95 transition-transform"
                 >
                   <RefreshCw size={14} />
                   <span className="text-xs font-black uppercase tracking-wider">Limpiar</span>
-                </button>
-              </div>
-
-              <div className="hidden sm:block h-10 w-[1px] bg-stone-800/50"></div>
-
-              <div className="flex flex-row items-center gap-2 w-full sm:w-auto">
-                <input 
-                  type="text" 
-                  placeholder="Familia..."
-                  value={bulkFamilyName}
-                  onChange={(e) => setBulkFamilyName(e.target.value)}
-                  className="flex-1 sm:flex-none bg-stone-900/80 border border-stone-800 rounded-xl px-4 py-3 sm:py-2.5 text-sm sm:text-base focus:ring-2 focus:ring-emerald-500 outline-none sm:w-64 placeholder:text-stone-700 text-white transition-all shadow-inner"
-                  style={{ fontSize: '16px' }}
-                />
-                <button 
-                  onClick={handleBulkSave}
-                  disabled={!bulkFamilyName.trim() || loading}
-                  className="shrink-0 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:bg-stone-900 disabled:text-stone-800 text-white px-5 sm:px-8 py-3 sm:py-2.5 rounded-xl sm:rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-[0.1em] transition-all shadow-[0_5px_15px_rgba(5,150,105,0.2)] active:scale-95 border border-emerald-500/20"
-                >
-                  {loading ? '...' : 'Asignar'}
                 </button>
               </div>
             </motion.div>
